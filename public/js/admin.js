@@ -147,7 +147,7 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (btn.id === "addBarber") {
-    cfg.barbers.push({ name: "Imię", role: "Barber", bio: "Krótki opis.", photo: "public/images/hero.jpg" });
+    cfg.barbers.push({ name: "Imię", role: "Barber", bio: "Krótki opis.", photo: "/images/hero.jpg" });
     renderBarbers();
     return;
   }

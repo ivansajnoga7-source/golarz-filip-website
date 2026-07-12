@@ -10,7 +10,7 @@ window.SITE_CONFIG = {
     "favicon": ""
   },
   "hero": {
-    "backgroundImage": "public/images/hero.jpg",
+    "backgroundImage": "/images/hero.jpg",
     "ctaPrimary": "Umów wizytę",
     "ctaSecondary": "Zobacz usługi"
   },
@@ -55,54 +55,54 @@ window.SITE_CONFIG = {
       "name": "Filip",
       "role": "Master Barber",
       "bio": "Precyzja cięcia i klasyczne golenie brzytwą — wizerunek, którego można zaufać.",
-      "photo": "public/images/haircut-profile.jpg"
+      "photo": "/images/haircut-profile.jpg"
     },
     {
       "name": "Dominik",
       "role": "Senior Barber",
       "bio": "Specjalista od wyraźnych cieniowań i męskich fryzur w stylu premium.",
-      "photo": "public/images/hot-towel.jpg"
+      "photo": "/images/hot-towel.jpg"
     }
   ],
   "gallery": {
     "images": [
-      { "src": "public/images/hero.jpg", "alt": "Wnętrze salonu — stanowiska barberskie" },
-      { "src": "public/images/piano-whiskey.jpg", "alt": "Kącik z pianinem i whisky" },
-      { "src": "public/images/piano-chess.jpg", "alt": "Pianino i szachy" },
-      { "src": "public/images/beer-piano.jpg", "alt": "Kącik barowy" },
-      { "src": "public/images/haircut-profile.jpg", "alt": "Efekt strzyżenia" },
-      { "src": "public/images/hot-towel.jpg", "alt": "Zabieg z gorącym ręcznikiem" },
-      { "src": "public/images/wash-station.jpg", "alt": "Stanowisko do mycia głowy" },
-      { "src": "public/images/chair-window.jpg", "alt": "Fotel barberski przy oknie" },
-      { "src": "public/images/lounge-corner.jpg", "alt": "Strefa oczekiwania" },
-      { "src": "public/images/storefront-corner.jpg", "alt": "Wejście do salonu" },
-      { "src": "public/images/storefront-sign.jpg", "alt": "Szyld salonu" },
-      { "src": "public/images/cacti-shelf.jpg", "alt": "Regał z dekoracjami" },
-      { "src": "public/images/drinks-shelf.jpg", "alt": "Półka z napojami" },
-      { "src": "public/images/motorcycle.jpg", "alt": "Detale wnętrza — motocykl" },
-      { "src": "public/images/aejoC8R - Imgur.png", "alt": "Zdjęcie 1" },
-      { "src": "public/images/CVpzkA5 - Imgur.png", "alt": "Zdjęcie 2" },
-      { "src": "public/images/dUjNlHm - Imgur.png", "alt": "Zdjęcie 3" },
-      { "src": "public/images/G5mtb5P - Imgur.png", "alt": "Zdjęcie 4" },
-      { "src": "public/images/l7zzE8W - Imgur.png", "alt": "Zdjęcie 5" },
-      { "src": "public/images/lVlgbG1 - Imgur.png", "alt": "Zdjęcie 6" },
-      { "src": "public/images/MYXO7k6 - Imgur.png", "alt": "Zdjęcie 7" },
-      { "src": "public/images/QDA3peD - Imgur.png", "alt": "Zdjęcie 8" },
-      { "src": "public/images/UbZqBqk - Imgur.png", "alt": "Zdjęcie 9" },
-      { "src": "public/images/XrTER88 - Imgur.png", "alt": "Zdjęcie 10" }
+      { "src": "/images/hero.jpg", "alt": "Wnętrze salonu — stanowiska barberskie" },
+      { "src": "/images/piano-whiskey.jpg", "alt": "Kącik z pianinem i whisky" },
+      { "src": "/images/piano-chess.jpg", "alt": "Pianino i szachy" },
+      { "src": "/images/beer-piano.jpg", "alt": "Kącik barowy" },
+      { "src": "/images/haircut-profile.jpg", "alt": "Efekt strzyżenia" },
+      { "src": "/images/hot-towel.jpg", "alt": "Zabieg z gorącym ręcznikiem" },
+      { "src": "/images/wash-station.jpg", "alt": "Stanowisko do mycia głowy" },
+      { "src": "/images/chair-window.jpg", "alt": "Fotel barberski przy oknie" },
+      { "src": "/images/lounge-corner.jpg", "alt": "Strefa oczekiwania" },
+      { "src": "/images/storefront-corner.jpg", "alt": "Wejście do salonu" },
+      { "src": "/images/storefront-sign.jpg", "alt": "Szyld salonu" },
+      { "src": "/images/cacti-shelf.jpg", "alt": "Regał z dekoracjami" },
+      { "src": "/images/drinks-shelf.jpg", "alt": "Półka z napojami" },
+      { "src": "/images/motorcycle.jpg", "alt": "Detale wnętrza — motocykl" },
+      { "src": "/images/aejoC8R - Imgur.png", "alt": "Zdjęcie 1" },
+      { "src": "/images/CVpzkA5 - Imgur.png", "alt": "Zdjęcie 2" },
+      { "src": "/images/dUjNlHm - Imgur.png", "alt": "Zdjęcie 3" },
+      { "src": "/images/G5mtb5P - Imgur.png", "alt": "Zdjęcie 4" },
+      { "src": "/images/l7zzE8W - Imgur.png", "alt": "Zdjęcie 5" },
+      { "src": "/images/lVlgbG1 - Imgur.png", "alt": "Zdjęcie 6" },
+      { "src": "/images/MYXO7k6 - Imgur.png", "alt": "Zdjęcie 7" },
+      { "src": "/images/QDA3peD - Imgur.png", "alt": "Zdjęcie 8" },
+      { "src": "/images/UbZqBqk - Imgur.png", "alt": "Zdjęcie 9" },
+      { "src": "/images/XrTER88 - Imgur.png", "alt": "Zdjęcie 10" }
     ]
   },
   "beforeAfter": {
     "items": [
       {
         "label": "Cieniowanie klasyczne",
-        "before": "public/images/wash-station.jpg",
-        "after": "public/images/haircut-profile.jpg"
+        "before": "/images/wash-station.jpg",
+        "after": "/images/haircut-profile.jpg"
       },
       {
         "label": "Rytuał golenia",
-        "before": "public/images/chair-window.jpg",
-        "after": "public/images/hot-towel.jpg"
+        "before": "/images/chair-window.jpg",
+        "after": "/images/hot-towel.jpg"
       }
     ]
   },
