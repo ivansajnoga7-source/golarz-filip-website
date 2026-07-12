@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
     return unauthorized(res);
   }
 
-  const adminPath = path.join(__dirname, '..', 'admin.html');
+  const adminPath = path.join(__dirname, '..', 'admin-page.html');
   try {
     const html = await fs.readFile(adminPath, 'utf8');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
