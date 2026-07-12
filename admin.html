@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel administracyjny — Golarz Filip</title>
+<link rel="stylesheet" href="public/css/admin.css">
+</head>
+<body>
+
+<header class="admin-header">
+  <div class="admin-header-inner">
+    <div class="admin-brand">Golarz Filip <span>— Panel administracyjny</span></div>
+    <button class="admin-btn admin-btn-primary" id="downloadBtn">Pobierz zaktualizowany plik strony</button>
+  </div>
+</header>
+
+<div class="admin-notice">
+  <p><strong>Jak to działa:</strong> ten panel wczytuje aktualną treść strony. Wprowadź zmiany w polach poniżej,
+  a na końcu kliknij <strong>„Pobierz zaktualizowany plik strony”</strong>. Pobrany plik <code>config.js</code>
+  wgraj na serwer w miejsce starego pliku w folderze <code>js/</code> — strona główna (<code>index.html</code>)
+  automatycznie pokaże nową treść. Zmiany wprowadzone tutaj są tymczasowo zapisywane w tej przeglądarce,
+  więc możesz wrócić do edycji później na tym samym urządzeniu.</p>
+</div>
+
+<main class="admin-main">
+
+  <!-- MARKA -->
+  <section class="admin-card">
+    <h2>Dane podstawowe</h2>
+    <div class="grid2">
+      <label>Nazwa salonu
+        <input type="text" id="brand_name">
+      </label>
+      <label>Podtytuł (np. „Barbershop we Wrocławiu”)
+        <input type="text" id="brand_tagline">
+      </label>
+    </div>
+    <label>Hasło / slogan
+      <input type="text" id="brand_slogan">
+    </label>
+  </section>
+
+  <!-- O NAS -->
+  <section class="admin-card">
+    <h2>Sekcja „O nas”</h2>
+    <label>Akapit 1
+      <textarea id="about_p1" rows="3"></textarea>
+    </label>
+    <label>Akapit 2
+      <textarea id="about_p2" rows="3"></textarea>
+    </label>
+    <label>Akapit 3
+      <textarea id="about_p3" rows="3"></textarea>
+    </label>
+    <div class="grid4">
+      <label>Ocena Google <input type="text" id="stat_0_value"></label>
+      <label>Etykieta <input type="text" id="stat_0_label"></label>
+      <label>Liczba opinii <input type="text" id="stat_1_value"></label>
+      <label>Etykieta <input type="text" id="stat_1_label"></label>
+    </div>
+  </section>
+
+  <!-- USŁUGI -->
+  <section class="admin-card">
+    <h2>Usługi i cennik</h2>
+    <p class="admin-hint">Edytuj nazwy, ceny i czas trwania. Aby dodać nową pozycję, skopiuj jeden z wierszy.</p>
+    <div id="servicesEditor"></div>
+    <button class="admin-btn" id="addServiceCategory">+ Dodaj kategorię usług</button>
+  </section>
+
+  <!-- BARBERZY -->
+  <section class="admin-card">
+    <h2>Zespół barberów</h2>
+    <div id="barbersEditor"></div>
+    <button class="admin-btn" id="addBarber">+ Dodaj barbera</button>
+  </section>
+
+  <!-- OPINIE -->
+  <section class="admin-card">
+    <h2>Opinie klientów</h2>
+    <div id="reviewsEditor"></div>
+    <button class="admin-btn" id="addReview">+ Dodaj opinię</button>
+  </section>
+
+  <!-- KONTAKT -->
+  <section class="admin-card">
+    <h2>Kontakt i lokalizacja</h2>
+    <div class="grid2">
+      <label>Adres <input type="text" id="contact_address"></label>
+      <label>Telefon <input type="text" id="contact_phone"></label>
+    </div>
+    <label>Link do rezerwacji online (Booksy, Versum itp.)
+      <input type="text" id="booking_url">
+    </label>
+    <h3>Godziny otwarcia</h3>
+    <div id="hoursEditor" class="grid2"></div>
+  </section>
+
+  <!-- SOCIAL MEDIA -->
+  <section class="admin-card">
+    <h2>Media społecznościowe</h2>
+    <div class="grid2">
+      <label>Instagram (link) <input type="text" id="social_instagram"></label>
+      <label>Facebook (link) <input type="text" id="social_facebook"></label>
+    </div>
+  </section>
+
+  <!-- BOOKINGS -->
+  <section class="admin-card">
+    <h2>Rezerwacje</h2>
+    <p class="admin-hint">Przeglądaj i zarządzaj rezerwacjami zapisanymi na serwerze (jeśli jest skonfigurowany) lub lokalnie.</p>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <button class="admin-btn" id="refreshBookings">Odśwież</button>
+      <button class="admin-btn" id="exportBookings">Eksportuj CSV</button>
+      <button class="admin-btn" id="clearBookings">Wyczyść lokalne</button>
+    </div>
+    <div id="bookingsContainer" style="overflow:auto;max-height:320px;border:1px solid #eee;padding:8px;background:#fff"></div>
+  </section>
+
+  <div class="admin-footer-actions">
+    <button class="admin-btn" id="resetBtn">Przywróć wersję z pliku config.js</button>
+    <button class="admin-btn admin-btn-primary" id="downloadBtn2">Pobierz zaktualizowany plik strony</button>
+  </div>
+
+</main>
+
+<script src="public/js/config.js?cb=1"></script>
+<script src="public/js/admin.js"></script>
+</body>
+</html>
