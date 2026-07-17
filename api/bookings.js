@@ -57,7 +57,21 @@ async function supabaseRequest(path, options = {}) {
   return res;
 }
 
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
 module.exports = async (req, res) => {
+  setCorsHeaders(res);
+
+  // Handle preflight CORS request
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 200;
+    return res.end('');
+  }
+
   // Routes: GET -> list (admin); POST -> create (public); DELETE -> delete (admin)
   const cookies = parseCookies(req.headers.cookie || '');
   const session = cookies.admin_session;
