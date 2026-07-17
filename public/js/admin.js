@@ -309,15 +309,20 @@ function renderBookingsList(bookings) {
   if (!bookings || bookings.length === 0) { wrap.innerHTML = '<em>Brak rezerwacji.</em>'; return; }
   const table = document.createElement('table');
   table.style.width = '100%';
-  table.innerHTML = '<thead><tr><th>Data i godzina</th><th>Imię</th><th>Telefon</th><th>Barber</th><th></th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>Data</th><th>Godzina</th><th>Imię</th><th>Telefon</th><th>Barber</th><th></th></tr></thead>';
   const tbody = document.createElement('tbody');
   bookings.forEach(b => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${new Date(b.datetime).toLocaleString()}</td>
+    // Support both old format (datetime) and new format (date + time)
+    const datetime = b.datetime ? new Date(b.datetime).toLocaleString() : (b.date + ' ' + (b.time || ''));
+    const barber = b.barber || b.note || '';
+    const id = b.id || b.datetime;
+    tr.innerHTML = `<td>${escapeAttr(b.date || '')}</td>
+                    <td>${escapeAttr(b.time || '')}</td>
                     <td>${escapeAttr(b.name)}</td>
                     <td>${escapeAttr(b.phone)}</td>
-                    <td>${escapeAttr(b.barber || '')}</td>
-                    <td><button class="admin-btn small" data-deldatetime="${b.datetime}">Usuń</button></td>`;
+                    <td>${escapeAttr(barber)}</td>
+                    <td><button class="admin-btn small" data-delid="${id}">Usuń</button></td>`;
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -337,25 +342,25 @@ async function refreshBookings() {
   renderBookingsList(bookings);
 }
 
-async function deleteBooking(datetime) {
+async function deleteBooking(id) {
   const apiUrl = cfg.booking && cfg.booking.apiUrl;
   if (apiUrl) {
     try {
-      const res = await fetch(apiUrl, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datetime }) });
+      const res = await fetch(`${apiUrl}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (res.ok) { await refreshBookings(); return true; }
       else { console.warn('delete failed', await res.text()); return false; }
     } catch (e) { console.warn(e); return false; }
   }
   // fallback local
   const bs = loadLocalBookings();
-  const idx = bs.findIndex(b => b.datetime === datetime);
+  const idx = bs.findIndex(b => b.id === id || b.datetime === id);
   if (idx !== -1) { bs.splice(idx,1); saveLocalBookings(bs); await refreshBookings(); return true; }
   return false;
 }
 
 function downloadCSV(bookings) {
   if (!bookings) bookings = [];
-  const header = ['datetime','name','phone','barber','createdAt'];
+  const header = ['date','time','name','phone','note','id','created_at'];
   const rows = bookings.map(b => header.map(h => '"'+String(b[h]||'').replace(/"/g,'""')+'"'));
   const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -387,9 +392,9 @@ document.getElementById('clearBookings')?.addEventListener('click', () => { loca
 // delegate delete button clicks
 document.getElementById('bookingsContainer')?.addEventListener('click', (e) => {
   const btn = e.target.closest('button'); if (!btn) return;
-  const dd = btn.dataset.deldatetime; if (!dd) return;
+  const id = btn.dataset.delid || btn.dataset.deldatetime; if (!id) return;
   if (!confirm('Usunąć tę rezerwację?')) return;
-  deleteBooking(dd);
+  deleteBooking(id);
 });
 
 // initial load

@@ -107,29 +107,12 @@ module.exports = async (req, res) => {
       return res.end('Invalid JSON');
     }
     
-    // Frontend sends: { datetime (ISO string), name, phone, barber }
-    // We need to extract date and time for the bookings table
-    const { datetime, name, phone, barber, note } = payload;
+    // Frontend sends: { date (YYYY-MM-DD), time (HH:MM), name, phone, barber }
+    const { date, time, name, phone, barber, note } = payload;
     
-    if (!name || !datetime) {
+    if (!name || !date || !time) {
       res.statusCode = 400;
-      return res.end('Missing required fields: name and datetime');
-    }
-    
-    // Parse ISO datetime (e.g., "2026-08-11T11:30:00.000Z")
-    let date, time;
-    try {
-      const dt = new Date(datetime);
-      const y = dt.getUTCFullYear();
-      const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(dt.getUTCDate()).padStart(2, '0');
-      const hh = String(dt.getUTCHours()).padStart(2, '0');
-      const mm = String(dt.getUTCMinutes()).padStart(2, '0');
-      date = `${y}-${m}-${d}`;
-      time = `${hh}:${mm}:00`;
-    } catch (err) {
-      res.statusCode = 400;
-      return res.end('Invalid datetime format');
+      return res.end('Missing required fields: name, date, and time');
     }
     
     try {

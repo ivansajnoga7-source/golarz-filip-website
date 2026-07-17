@@ -343,13 +343,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const barber = formData.get('barber');
         if (!date || !time) { msg.textContent = 'Wybierz datę i godzinę.'; return; }
 
-        // construct local datetime and ISO key (to minute precision)
+        // construct local datetime to check if in future
         const [y,m,d] = date.split('-').map(Number);
         const [hh,mm] = time.split(':').map(Number);
         const dt = new Date(y, m-1, d, hh, mm, 0, 0);
         if (dt < new Date()) { msg.textContent = 'Nie można rezerwować w przeszłości.'; return; }
-
-        const isoKey = dt.toISOString();
 
         // If server API configured, try to POST; otherwise fallback to localStorage
         const apiUrl = cfg.booking && cfg.booking.apiUrl;
@@ -357,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
           try {
             const res = await fetch(apiUrl, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ datetime: isoKey, name, phone, barber })
+              body: JSON.stringify({ date, time, name, phone, barber })
             });
             if (res.status === 201) {
               msg.style.color = 'green'; msg.textContent = 'Rezerwacja zapisana. Dziękujemy!';
