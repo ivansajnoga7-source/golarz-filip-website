@@ -43,7 +43,9 @@ function verifySessionToken(token) {
 }
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.warn('Warning: SUPABASE_URL or SUPABASE_KEY not set — bookings API will fail without them.');
+  console.error('ERROR: SUPABASE_URL or SUPABASE_KEY not set!');
+  console.error('SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'MISSING');
+  console.error('SUPABASE_KEY:', SUPABASE_KEY ? 'SET' : 'MISSING');
 }
 
 async function supabaseRequest(path, options = {}) {
@@ -140,8 +142,11 @@ module.exports = async (req, res) => {
       res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify(data));
     } catch (err) {
+      console.error('Booking creation error:', err.message);
+      console.error('SUPABASE_URL:', SUPABASE_URL);
+      console.error('SUPABASE_KEY exists:', !!SUPABASE_KEY);
       res.statusCode = 500;
-      return res.end('Error creating booking');
+      return res.end('Error creating booking: ' + err.message);
     }
   }
 
