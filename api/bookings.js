@@ -147,8 +147,14 @@ module.exports = async (req, res) => {
         return res.end('Supabase error: ' + text);
       }
       
-      const data = JSON.parse(text);
+      res.statusCode = 201;
       res.setHeader('Content-Type', 'application/json');
+      // If body is empty, return success object
+      if (!text || text.trim() === '') {
+        return res.end(JSON.stringify({ success: true, message: 'Booking created' }));
+      }
+      
+      const data = JSON.parse(text);
       return res.end(JSON.stringify(data));
     } catch (err) {
       console.error('Booking creation error:', err.message);
