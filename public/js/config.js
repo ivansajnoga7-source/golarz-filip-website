@@ -135,7 +135,7 @@ window.SITE_CONFIG = {
   },
   "booking": {
     "bookingUrl": "#вапвапвап",
-    "apiUrl": "http://localhost:3001/api/bookings"
+    "apiUrl": "/api/bookings"
   },
   "faq": {
     "items": []
