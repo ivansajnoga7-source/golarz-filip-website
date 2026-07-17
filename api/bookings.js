@@ -2,7 +2,7 @@ const fetch = global.fetch || require('node-fetch');
 const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY; // service_role or anon (service_role recommended for server-side)
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; // service_role (server-side)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'GolarzAdmin2026';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const SESSION_MAX_AGE = 24 * 60 * 60;
