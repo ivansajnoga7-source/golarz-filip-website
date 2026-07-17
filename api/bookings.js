@@ -138,7 +138,16 @@ module.exports = async (req, res) => {
         body: JSON.stringify({ name, phone, date, time, note: barber || note }),
         query: ''
       });
-      const data = await r.json();
+      console.log('Supabase response status:', r.status);
+      const text = await r.text();
+      console.log('Supabase response body:', text);
+      
+      if (!r.ok) {
+        res.statusCode = r.status;
+        return res.end('Supabase error: ' + text);
+      }
+      
+      const data = JSON.parse(text);
       res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify(data));
     } catch (err) {
