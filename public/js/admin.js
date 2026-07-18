@@ -10,6 +10,17 @@
 
 const STORAGE_KEY = "golarzFilipAdminDraft";
 
+function getAdminSessionToken() {
+  return String(window.ADMIN_SESSION_TOKEN || '').trim();
+}
+
+function getAdminRequestHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getAdminSessionToken();
+  if (token) headers['X-Admin-Token'] = token;
+  return headers;
+}
+
 function loadWorkingConfig() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
@@ -305,7 +316,7 @@ function getBookingsApiUrl() {
 
 async function fetchBookingsFromServer(apiUrl) {
   try {
-    const res = await fetch(apiUrl, { credentials: 'same-origin' });
+    const res = await fetch(apiUrl, { credentials: 'same-origin', headers: getAdminRequestHeaders() });
     if (!res.ok) {
       const body = await res.text();
       return { ok: false, status: res.status, body };
@@ -400,7 +411,7 @@ async function refreshBookings() {
 async function deleteBooking(id) {
   const apiUrl = getBookingsApiUrl();
   try {
-    const res = await fetch(`${apiUrl}?id=${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'same-origin' });
+    const res = await fetch(`${apiUrl}?id=${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'same-origin', headers: getAdminRequestHeaders() });
     if (res.ok) { await refreshBookings(); return true; }
     else { console.warn('delete failed', await res.text()); return false; }
   } catch (e) {

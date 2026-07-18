@@ -23,6 +23,13 @@ function parseCookies(cookieHeader) {
   return out;
 }
 
+function getRequestSessionToken(req) {
+  const headerToken = req.headers['x-admin-token'];
+  if (headerToken) return String(headerToken).trim();
+  const cookies = parseCookies(req.headers.cookie || '');
+  return cookies.admin_session;
+}
+
 function signPayload(payload) {
   return crypto.createHmac('sha256', ADMIN_PASSWORD).update(payload).digest('hex');
 }
@@ -160,8 +167,7 @@ module.exports = async (req, res) => {
   }
 
   // Routes: GET -> list (admin); POST -> create (public); DELETE -> delete (admin)
-  const cookies = parseCookies(req.headers.cookie || '');
-  const session = cookies.admin_session;
+  const session = getRequestSessionToken(req);
 
   if (req.method === 'GET') {
     const url = new URL(req.url, 'http://localhost');
@@ -199,7 +205,7 @@ module.exports = async (req, res) => {
       return res.end('Unauthorized');
     }
     try {
-      const r = await supabaseRequest('bookings?select=*&order=created_at.desc');
+      const r = await supabaseRequest('bookings?select=*&order=created_at.desc,date.desc,time.desc');
       const data = await r.json();
       res.setHeader('Content-Type', 'application/json');
       return res.end(JSON.stringify(data));

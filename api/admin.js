@@ -46,12 +46,12 @@ function verifySessionToken(token) {
   }
 }
 
-async function serveAdminPage(res) {
+async function serveAdminPage(res, sessionToken = '') {
   const adminPath = path.join(__dirname, '..', 'admin-page.html');
   try {
     const html = await fs.readFile(adminPath, 'utf8');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.end(html);
+    return res.end(html.replaceAll('__ADMIN_SESSION_TOKEN__', sessionToken));
   } catch (err) {
     res.statusCode = 500;
     return res.end('Server error');
@@ -80,7 +80,7 @@ module.exports = async (req, res) => {
 
   if (req.method === 'GET') {
     if (session && verifySessionToken(session)) {
-      return serveAdminPage(res);
+      return serveAdminPage(res, session);
     }
     // show login form
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
