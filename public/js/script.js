@@ -505,6 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
           .booking-msg{min-height:18px;margin-top:6px;color:#b00020}
           .booking-hp{position:absolute;left:-9999px;opacity:0;pointer-events:none}
           .booking-success-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
+          .booking-success-close{min-width:44px;padding:0 14px}
         `;
         document.head.appendChild(s);
       }
@@ -714,13 +715,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function showBookingSuccess(date, time, customerName, barberName) {
         msg.style.color = 'green';
-        msg.textContent = 'Rezerwacja zapisana. Zamknij okno krzyżykiem lub dodaj termin do kalendarza.';
+        msg.textContent = 'Rezerwacja zapisana. Możesz dodać termin do kalendarza albo zamknąć okno.';
 
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Zapisano';
+          submitBtn.disabled = false;
+          submitBtn.type = 'button';
+          submitBtn.textContent = 'Zamknij';
+          submitBtn.addEventListener('click', () => modal.remove(), { once: true });
         }
+
+        const cancelBtn = form.querySelector('.booking-cancel');
+        if (cancelBtn) cancelBtn.style.display = 'none';
 
         let box = form.querySelector('.booking-success-actions');
         if (!box) {
@@ -745,6 +751,14 @@ document.addEventListener("DOMContentLoaded", () => {
           URL.revokeObjectURL(url);
         });
         box.appendChild(addCalBtn);
+
+        const closeXBtn = document.createElement('button');
+        closeXBtn.type = 'button';
+        closeXBtn.className = 'btn btn-outline booking-success-close';
+        closeXBtn.textContent = '✕';
+        closeXBtn.setAttribute('aria-label', 'Zamknij okno rezerwacji');
+        closeXBtn.addEventListener('click', () => modal.remove());
+        box.appendChild(closeXBtn);
       }
 
       form.addEventListener('submit', async (e) => {
