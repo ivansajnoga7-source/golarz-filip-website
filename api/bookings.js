@@ -76,6 +76,42 @@ function isValidE164(phone) {
   return /^\+[1-9]\d{7,14}$/.test(phone);
 }
 
+async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue) {
+  // Try the current schema first (note), then fallback to older/newer variant (barber).
+  let r = await supabaseRequest('bookings', {
+    method: 'POST',
+    body: JSON.stringify(Object.assign({}, payloadBase, { note: preferredBarberValue })),
+    query: ''
+  });
+
+  if (r.ok) return r;
+
+  const firstText = await r.text();
+  const firstLower = String(firstText || '').toLowerCase();
+
+  if (firstLower.includes("could not find the 'note' column")) {
+    r = await supabaseRequest('bookings', {
+      method: 'POST',
+      body: JSON.stringify(Object.assign({}, payloadBase, { barber: preferredBarberValue })),
+      query: ''
+    });
+    if (r.ok) return r;
+
+    const secondText = await r.text();
+    return {
+      ok: false,
+      status: r.status,
+      text: async () => secondText
+    };
+  }
+
+  return {
+    ok: false,
+    status: r.status,
+    text: async () => firstText
+  };
+}
+
 function getClientIp(req) {
   const xff = req.headers['x-forwarded-for'];
   if (xff) return String(xff).split(',')[0].trim();
@@ -211,11 +247,10 @@ module.exports = async (req, res) => {
         return res.end('Ten termin jest już zajęty. Wybierz inny.');
       }
 
-      const r = await supabaseRequest('bookings', {
-        method: 'POST',
-        body: JSON.stringify({ name, phone: normalizedPhone, date, time: normalizedTime, note: barberName }),
-        query: ''
-      });
+      const r = await insertBookingWithSchemaFallback(
+        { name, phone: normalizedPhone, date, time: normalizedTime },
+        barberName
+      );
       console.log('Supabase response status:', r.status);
       const text = await r.text();
       console.log('Supabase response body:', text);
