@@ -128,11 +128,29 @@ module.exports = async (req, res) => {
       res.statusCode = 400;
       return res.end('Invalid phone number. Use international format, e.g. +48730953579');
     }
+
+    const normalizedTime = /^\d{2}:\d{2}:\d{2}$/.test(String(time || ''))
+      ? String(time)
+      : `${String(time)}:00`;
     
     try {
+      const existingRes = await supabaseRequest(
+        `bookings?select=id&date=eq.${encodeURIComponent(date)}&time=eq.${encodeURIComponent(normalizedTime)}&limit=1`
+      );
+      if (!existingRes.ok) {
+        const errText = await existingRes.text();
+        res.statusCode = 500;
+        return res.end('Error checking existing booking: ' + errText);
+      }
+      const existing = await existingRes.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        res.statusCode = 409;
+        return res.end('Ten termin jest już zajęty. Wybierz inny.');
+      }
+
       const r = await supabaseRequest('bookings', {
         method: 'POST',
-        body: JSON.stringify({ name, phone: normalizedPhone, date, time, note: barber || note }),
+        body: JSON.stringify({ name, phone: normalizedPhone, date, time: normalizedTime, note: barber || note }),
         query: ''
       });
       console.log('Supabase response status:', r.status);
