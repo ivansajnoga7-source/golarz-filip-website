@@ -361,7 +361,7 @@ function normalizeBookingForAdmin(b) {
   return Object.assign({}, b, {
     date,
     time,
-    barber: b.barber || b.note || 'Bez preferencji',
+    barber: b.barber_name || b.barber || b.note || 'Bez preferencji',
     created_at: createdAt,
     _sortStamp: sortStamp.getTime(),
     _slotLabel: date && time ? `${date} ${time}` : (b.datetime || '')

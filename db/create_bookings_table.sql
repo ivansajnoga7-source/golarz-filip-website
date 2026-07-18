@@ -7,6 +7,7 @@ create table if not exists public.bookings (
   phone text,
   date date not null,
   time time,
+  barber_name text,
   note text,
   created_at timestamptz default now()
 );

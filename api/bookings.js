@@ -71,8 +71,8 @@ async function supabaseRequest(path, options = {}) {
 
 async function fetchBookingsRows() {
   const queries = [
-    'bookings?select=id,name,phone,date,time,note,barber,created_at&order=date.desc,time.desc,created_at.desc',
-    'bookings?select=id,name,phone,date,time,note,barber,created_at&order=created_at.desc',
+    'bookings?select=id,name,phone,date,time,barber_name,note,barber,created_at&order=date.desc,time.desc,created_at.desc',
+    'bookings?select=id,name,phone,date,time,barber_name,note,barber,created_at&order=created_at.desc',
     'bookings?select=*'
   ];
 
@@ -123,10 +123,10 @@ function isValidE164(phone) {
 }
 
 async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue) {
-  // Try possible schema variants in order: note -> barber -> no barber field.
+  // Try possible schema variants in order: barber_name -> note -> barber -> no barber field.
   let r = await supabaseRequest('bookings', {
     method: 'POST',
-    body: JSON.stringify(Object.assign({}, payloadBase, { note: preferredBarberValue })),
+    body: JSON.stringify(Object.assign({}, payloadBase, { barber_name: preferredBarberValue })),
     query: ''
   });
 
@@ -135,10 +135,10 @@ async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue
   const firstText = await r.text();
   const firstLower = String(firstText || '').toLowerCase();
 
-  if (firstLower.includes("could not find the 'note' column") || firstLower.includes('column')) {
+  if (firstLower.includes("could not find the 'barber_name' column") || firstLower.includes('column')) {
     r = await supabaseRequest('bookings', {
       method: 'POST',
-      body: JSON.stringify(Object.assign({}, payloadBase, { barber: preferredBarberValue })),
+      body: JSON.stringify(Object.assign({}, payloadBase, { note: preferredBarberValue })),
       query: ''
     });
     if (r.ok) return r;
@@ -146,15 +146,33 @@ async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue
     const secondText = await r.text();
     const secondLower = String(secondText || '').toLowerCase();
 
-    if (secondLower.includes("could not find the 'barber' column") || secondLower.includes('column')) {
+    if (secondLower.includes("could not find the 'note' column") || secondLower.includes('column')) {
       r = await supabaseRequest('bookings', {
         method: 'POST',
-        body: JSON.stringify(payloadBase),
+        body: JSON.stringify(Object.assign({}, payloadBase, { barber: preferredBarberValue })),
         query: ''
       });
       if (r.ok) return r;
 
       const thirdText = await r.text();
+      const thirdLower = String(thirdText || '').toLowerCase();
+
+      if (thirdLower.includes("could not find the 'barber' column") || thirdLower.includes('column')) {
+        r = await supabaseRequest('bookings', {
+          method: 'POST',
+          body: JSON.stringify(payloadBase),
+          query: ''
+        });
+        if (r.ok) return r;
+
+        const fourthText = await r.text();
+        return {
+          ok: false,
+          status: r.status,
+          text: async () => fourthText
+        };
+      }
+
       return {
         ok: false,
         status: r.status,
