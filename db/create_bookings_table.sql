@@ -13,3 +13,8 @@ create table if not exists public.bookings (
 
 -- Optional index for quick date-based queries
 create index if not exists bookings_date_idx on public.bookings (date);
+
+-- Prevent double-booking for one date+time slot
+create unique index if not exists bookings_unique_date_time_idx
+  on public.bookings (date, time)
+  where time is not null;

@@ -158,6 +158,11 @@ module.exports = async (req, res) => {
       console.log('Supabase response body:', text);
       
       if (!r.ok) {
+        const lowered = String(text || '').toLowerCase();
+        if (r.status === 409 || lowered.includes('duplicate key') || lowered.includes('23505')) {
+          res.statusCode = 409;
+          return res.end('Ten termin jest już zajęty. Wybierz inny.');
+        }
         res.statusCode = r.status;
         return res.end('Supabase error: ' + text);
       }
