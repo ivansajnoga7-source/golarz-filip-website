@@ -335,6 +335,14 @@ function loadLocalBookings() {
 
 function saveLocalBookings(bs) { localStorage.setItem('GF_BOOKINGS', JSON.stringify(bs)); }
 
+function normalizeBookingsPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.data)) return payload.data;
+  if (payload && Array.isArray(payload.bookings)) return payload.bookings;
+  if (payload && typeof payload === 'object' && (payload.id || payload.date || payload.time || payload.name)) return [payload];
+  return [];
+}
+
 function normalizeBookingForAdmin(b) {
   const date = String(b.date || '').trim();
   const time = String(b.time || '').slice(0, 5);
@@ -381,6 +389,12 @@ function renderBookingsList(bookings) {
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
+  const info = document.createElement('div');
+  info.style.marginBottom = '10px';
+  info.style.fontSize = '13px';
+  info.style.opacity = '0.75';
+  info.textContent = `Załadowano ${normalized.length} rezerwacji`;
+  wrap.appendChild(info);
   wrap.appendChild(table);
 }
 
@@ -389,7 +403,8 @@ async function refreshBookings() {
   const wrap = document.getElementById('bookingsContainer');
   const srv = await fetchBookingsFromServer(apiUrl);
   if (srv.ok) {
-    renderBookingsList(srv.data);
+    const bookings = normalizeBookingsPayload(srv.data);
+    renderBookingsList(bookings);
     return;
   }
 
@@ -401,7 +416,7 @@ async function refreshBookings() {
 
   // fallback to local only for network errors
   if (srv.status === 0) {
-    renderBookingsList(loadLocalBookings());
+    renderBookingsList(normalizeBookingsPayload(loadLocalBookings()));
     return;
   }
 
