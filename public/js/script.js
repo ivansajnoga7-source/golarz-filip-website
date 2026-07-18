@@ -370,6 +370,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const barberSelect = modal.querySelector('select[name="barber"]');
       const countrySelect = modal.querySelector('select[name="countryCode"]');
       const countrySearch = modal.querySelector('input[name="countrySearch"]');
+      const phoneInput = modal.querySelector('input[name="phone"]');
+
+      function applyPhoneConstraints(countryCode) {
+        const selected = PHONE_COUNTRIES.find(c => c.code === countryCode);
+        if (!selected) {
+          phoneInput.removeAttribute('maxlength');
+          return;
+        }
+        phoneInput.maxLength = selected.max;
+        phoneInput.setAttribute('maxlength', String(selected.max));
+        const digits = normalizeDigits(phoneInput.value);
+        phoneInput.value = digits.slice(0, selected.max);
+      }
 
       function renderCountryOptions(filter) {
         const q = String(filter || '').trim().toLowerCase();
@@ -390,10 +403,12 @@ document.addEventListener("DOMContentLoaded", () => {
           opt.textContent = 'Brak wyników';
           countrySelect.appendChild(opt);
           countrySelect.value = '';
+          applyPhoneConstraints('');
           return;
         }
         const exists = items.some(c => c.code === 'PL');
         countrySelect.value = exists ? 'PL' : items[0].code;
+        applyPhoneConstraints(countrySelect.value);
       }
 
       // populate barber list
@@ -403,6 +418,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       renderCountryOptions('');
       countrySearch.addEventListener('input', () => renderCountryOptions(countrySearch.value));
+      countrySelect.addEventListener('change', () => applyPhoneConstraints(countrySelect.value));
+      phoneInput.addEventListener('input', () => {
+        const selected = PHONE_COUNTRIES.find(c => c.code === countrySelect.value);
+        const maxDigits = selected ? selected.max : 15;
+        const digits = normalizeDigits(phoneInput.value).slice(0, maxDigits);
+        phoneInput.value = digits;
+      });
 
       // set min date to today
       const dateInput = form.querySelector('input[name="date"]');
