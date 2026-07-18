@@ -298,12 +298,24 @@ function downloadConfig() {
 populateForm();
 
 /* ---------------- bookings admin ----------------------------------------- */
+function getBookingsApiUrl() {
+  const fromCfg = cfg && cfg.booking && cfg.booking.apiUrl;
+  return fromCfg || '/api/bookings';
+}
+
 async function fetchBookingsFromServer(apiUrl) {
   try {
-    const res = await fetch(apiUrl);
-    if (!res.ok) throw new Error('fetch_failed');
-    return await res.json();
-  } catch (e) { console.warn('server bookings fetch failed', e); return null; }
+    const res = await fetch(apiUrl, { credentials: 'same-origin' });
+    if (!res.ok) {
+      const body = await res.text();
+      return { ok: false, status: res.status, body };
+    }
+    const data = await res.json();
+    return { ok: true, data };
+  } catch (e) {
+    console.warn('server bookings fetch failed', e);
+    return { ok: false, status: 0, body: 'network_error' };
+  }
 }
 
 function loadLocalBookings() {
@@ -339,32 +351,42 @@ function renderBookingsList(bookings) {
 }
 
 async function refreshBookings() {
-  const apiUrl = cfg.booking && cfg.booking.apiUrl;
-  let bookings = [];
-  if (apiUrl) {
-    const srv = await fetchBookingsFromServer(apiUrl);
-    if (srv !== null) bookings = srv;
-    else bookings = loadLocalBookings();
-  } else {
-    bookings = loadLocalBookings();
+  const apiUrl = getBookingsApiUrl();
+  const wrap = document.getElementById('bookingsContainer');
+  const srv = await fetchBookingsFromServer(apiUrl);
+  if (srv.ok) {
+    renderBookingsList(srv.data);
+    return;
   }
-  renderBookingsList(bookings);
+
+  if (srv.status === 401) {
+    wrap.innerHTML = '<em>Brak autoryzacji. Otwórz panel przez /admin i zaloguj się ponownie.</em>';
+    return;
+  }
+
+  // fallback to local only for network errors
+  if (srv.status === 0) {
+    renderBookingsList(loadLocalBookings());
+    return;
+  }
+
+  wrap.innerHTML = `<em>Błąd synchronizacji z serwerem (${srv.status}).</em>`;
 }
 
 async function deleteBooking(id) {
-  const apiUrl = cfg.booking && cfg.booking.apiUrl;
-  if (apiUrl) {
-    try {
-      const res = await fetch(`${apiUrl}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-      if (res.ok) { await refreshBookings(); return true; }
-      else { console.warn('delete failed', await res.text()); return false; }
-    } catch (e) { console.warn(e); return false; }
+  const apiUrl = getBookingsApiUrl();
+  try {
+    const res = await fetch(`${apiUrl}?id=${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'same-origin' });
+    if (res.ok) { await refreshBookings(); return true; }
+    else { console.warn('delete failed', await res.text()); return false; }
+  } catch (e) {
+    console.warn(e);
+    // fallback local on network errors only
+    const bs = loadLocalBookings();
+    const idx = bs.findIndex(b => b.id === id || b.datetime === id);
+    if (idx !== -1) { bs.splice(idx,1); saveLocalBookings(bs); await refreshBookings(); return true; }
+    return false;
   }
-  // fallback local
-  const bs = loadLocalBookings();
-  const idx = bs.findIndex(b => b.id === id || b.datetime === id);
-  if (idx !== -1) { bs.splice(idx,1); saveLocalBookings(bs); await refreshBookings(); return true; }
-  return false;
 }
 
 function downloadCSV(bookings) {
@@ -380,7 +402,7 @@ function downloadCSV(bookings) {
 // wire booking admin controls
 document.getElementById('refreshBookings')?.addEventListener('click', () => refreshBookings());
 document.getElementById('exportBookings')?.addEventListener('click', async () => {
-  const apiUrl = cfg.booking && cfg.booking.apiUrl;
+  const apiUrl = getBookingsApiUrl();
   if (apiUrl) {
     // try server CSV first
     try {
