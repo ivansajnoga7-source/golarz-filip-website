@@ -222,10 +222,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ---------------- footer / social ------------------------------------------------- */
   document.querySelectorAll(".js-year").forEach(n => n.textContent = new Date().getFullYear());
+  const socialCfg = Object.assign({ instagram: '', facebook: '', tiktok: '', youtube: '', x: '' }, cfg.social || {});
   const igLinks = document.querySelectorAll(".js-instagram");
-  igLinks.forEach(n => n.setAttribute("href", cfg.social.instagram));
+  igLinks.forEach(n => n.setAttribute("href", socialCfg.instagram || '#'));
   const fbLinks = document.querySelectorAll(".js-facebook");
-  fbLinks.forEach(n => n.setAttribute("href", cfg.social.facebook));
+  fbLinks.forEach(n => n.setAttribute("href", socialCfg.facebook || '#'));
+  const ttLinks = document.querySelectorAll('.js-tiktok');
+  ttLinks.forEach(n => n.setAttribute('href', socialCfg.tiktok || '#'));
+  const ytLinks = document.querySelectorAll('.js-youtube');
+  ytLinks.forEach(n => n.setAttribute('href', socialCfg.youtube || '#'));
+  const xLinks = document.querySelectorAll('.js-x');
+  xLinks.forEach(n => n.setAttribute('href', socialCfg.x || '#'));
 
   /* ---------------- header scroll state --------------------------------------------- */
   const header = document.querySelector(".site-header");
@@ -543,6 +550,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // populate barber list
+      const noPref = document.createElement('option');
+      noPref.value = '';
+      noPref.textContent = 'Bez preferencji';
+      barberSelect.appendChild(noPref);
       (cfg.barbers || []).forEach((b, i) => {
         const opt = document.createElement('option'); opt.value = b.name; opt.textContent = b.name; barberSelect.appendChild(opt);
       });

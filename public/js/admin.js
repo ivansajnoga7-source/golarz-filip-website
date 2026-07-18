@@ -31,10 +31,12 @@ function loadWorkingConfig() {
       contact: { address: '', phone: '', phoneHref: '', mapsLink: '', mapsEmbedSrc: '', hours: [] },
       booking: { bookingUrl: '#' },
       faq: { items: [] },
-      social: { instagram: '', facebook: '' }
+      social: { instagram: '', facebook: '', tiktok: '', youtube: '', x: '' }
     };
   }
-  return JSON.parse(JSON.stringify(window.SITE_CONFIG));
+  const cfgCopy = JSON.parse(JSON.stringify(window.SITE_CONFIG));
+  cfgCopy.social = Object.assign({ instagram: '', facebook: '', tiktok: '', youtube: '', x: '' }, cfgCopy.social || {});
+  return cfgCopy;
 }
 
 let cfg = loadWorkingConfig();
@@ -65,8 +67,12 @@ function populateForm() {
   setVal("contact_phone", cfg.contact.phone);
   setVal("booking_url", cfg.booking.bookingUrl);
 
+  cfg.social = Object.assign({ instagram: '', facebook: '', tiktok: '', youtube: '', x: '' }, cfg.social || {});
   setVal("social_instagram", cfg.social.instagram);
   setVal("social_facebook", cfg.social.facebook);
+  setVal("social_tiktok", cfg.social.tiktok);
+  setVal("social_youtube", cfg.social.youtube);
+  setVal("social_x", cfg.social.x);
 
   renderServices();
   renderBarbers();
@@ -246,7 +252,7 @@ document.addEventListener("input", (e) => {
 /* ---------------- simple fields → cfg -------------------------------------- */
 ["brand_name","brand_tagline","brand_slogan","about_p1","about_p2","about_p3",
  "stat_0_value","stat_0_label","stat_1_value","stat_1_label",
- "contact_address","contact_phone","booking_url","social_instagram","social_facebook"
+ "contact_address","contact_phone","booking_url","social_instagram","social_facebook","social_tiktok","social_youtube","social_x"
 ].forEach(id => {
   document.addEventListener("input", (e) => {
     if (e.target.id !== id) return;
@@ -266,6 +272,9 @@ document.addEventListener("input", (e) => {
     if (id === "booking_url") cfg.booking.bookingUrl = v;
     if (id === "social_instagram") cfg.social.instagram = v;
     if (id === "social_facebook") cfg.social.facebook = v;
+    if (id === "social_tiktok") cfg.social.tiktok = v;
+    if (id === "social_youtube") cfg.social.youtube = v;
+    if (id === "social_x") cfg.social.x = v;
   });
 });
 
@@ -315,7 +324,7 @@ function renderBookingsList(bookings) {
     const tr = document.createElement('tr');
     // Support both old format (datetime) and new format (date + time)
     const datetime = b.datetime ? new Date(b.datetime).toLocaleString() : (b.date + ' ' + (b.time || ''));
-    const barber = b.barber || b.note || '';
+    const barber = b.barber || b.note || 'Bez preferencji';
     const id = b.id || b.datetime;
     tr.innerHTML = `<td>${escapeAttr(b.date || '')}</td>
                     <td>${escapeAttr(b.time || '')}</td>

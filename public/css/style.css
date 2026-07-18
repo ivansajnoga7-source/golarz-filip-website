@@ -327,9 +327,11 @@ p{ margin: 0; }
   z-index:2;
   font-size: 11px;
   letter-spacing: 0.24em;
+  line-height: 1;
   text-transform: uppercase;
   color: var(--cream-dim);
-  display:flex; flex-direction:column; align-items:center; gap:10px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  pointer-events: none;
 }
 .hero-scroll .line{
   width:1px; height: 40px;
@@ -341,6 +343,11 @@ p{ margin: 0; }
   50%{ transform: scaleY(1); transform-origin: top; }
   51%{ transform: scaleY(1); transform-origin: bottom; }
   100%{ transform: scaleY(0); transform-origin: bottom; }
+}
+
+@media (max-height: 780px){
+  .hero-content{ padding-bottom: 118px; }
+  .hero-scroll{ bottom: 20px; }
 }
 
 /* ---------- reveal-on-scroll ------------------------------------------------ */

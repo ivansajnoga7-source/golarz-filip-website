@@ -128,6 +128,7 @@ module.exports = async (req, res) => {
       res.statusCode = 400;
       return res.end('Invalid phone number. Use international format, e.g. +48730953579');
     }
+    const barberName = String(barber || note || '').trim() || 'Bez preferencji';
 
     const normalizedTime = /^\d{2}:\d{2}:\d{2}$/.test(String(time || ''))
       ? String(time)
@@ -150,7 +151,7 @@ module.exports = async (req, res) => {
 
       const r = await supabaseRequest('bookings', {
         method: 'POST',
-        body: JSON.stringify({ name, phone: normalizedPhone, date, time: normalizedTime, note: barber || note }),
+        body: JSON.stringify({ name, phone: normalizedPhone, date, time: normalizedTime, note: barberName }),
         query: ''
       });
       console.log('Supabase response status:', r.status);
