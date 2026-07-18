@@ -322,7 +322,12 @@ async function fetchBookingsFromServer(apiUrl) {
       return { ok: false, status: res.status, body };
     }
     const data = await res.json();
-    return { ok: true, data };
+    return {
+      ok: true,
+      data,
+      count: Number(res.headers.get('x-bookings-count') || (Array.isArray(data) ? data.length : 0)),
+      query: res.headers.get('x-bookings-query') || ''
+    };
   } catch (e) {
     console.warn('server bookings fetch failed', e);
     return { ok: false, status: 0, body: 'network_error' };
@@ -363,10 +368,21 @@ function normalizeBookingForAdmin(b) {
   });
 }
 
-function renderBookingsList(bookings) {
+function renderBookingsList(bookings, metaText = '') {
   const wrap = document.getElementById('bookingsContainer');
   wrap.innerHTML = '';
-  if (!bookings || bookings.length === 0) { wrap.innerHTML = '<em>Brak rezerwacji.</em>'; return; }
+  if (!bookings || bookings.length === 0) {
+    if (metaText) {
+      const info = document.createElement('div');
+      info.style.marginBottom = '10px';
+      info.style.fontSize = '13px';
+      info.style.opacity = '0.75';
+      info.textContent = metaText;
+      wrap.appendChild(info);
+    }
+    wrap.innerHTML += '<em>Brak rezerwacji.</em>';
+    return;
+  }
   const normalized = bookings.map(normalizeBookingForAdmin).sort((a, b) => {
     if (b._sortStamp !== a._sortStamp) return b._sortStamp - a._sortStamp;
     return String(b.date + b.time).localeCompare(String(a.date + a.time));
@@ -389,6 +405,14 @@ function renderBookingsList(bookings) {
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
+  if (metaText) {
+    const info = document.createElement('div');
+    info.style.marginBottom = '10px';
+    info.style.fontSize = '13px';
+    info.style.opacity = '0.75';
+    info.textContent = metaText;
+    wrap.appendChild(info);
+  }
   const info = document.createElement('div');
   info.style.marginBottom = '10px';
   info.style.fontSize = '13px';
@@ -404,7 +428,7 @@ async function refreshBookings() {
   const srv = await fetchBookingsFromServer(apiUrl);
   if (srv.ok) {
     const bookings = normalizeBookingsPayload(srv.data);
-    renderBookingsList(bookings);
+    renderBookingsList(bookings, `Serwer zwrócił ${srv.count} rezerwacji${srv.query ? ` (${srv.query})` : ''}`);
     return;
   }
 

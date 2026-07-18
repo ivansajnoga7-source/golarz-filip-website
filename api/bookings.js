@@ -69,6 +69,45 @@ async function supabaseRequest(path, options = {}) {
   return res;
 }
 
+async function fetchBookingsRows() {
+  const queries = [
+    'bookings?select=id,name,phone,date,time,note,barber,created_at&order=date.desc,time.desc,created_at.desc',
+    'bookings?select=id,name,phone,date,time,note,barber,created_at&order=created_at.desc',
+    'bookings?select=*'
+  ];
+
+  for (const query of queries) {
+    const res = await supabaseRequest(query);
+    const text = await res.text();
+    if (!res.ok) {
+      console.error('Bookings GET failed for query:', query, 'status:', res.status, 'body:', text);
+      continue;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error('Bookings GET returned non-JSON for query:', query, 'body:', text);
+      continue;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      return { data, query };
+    }
+
+    if (Array.isArray(data)) {
+      // Keep trying simpler queries in case the first one returns an empty set because of a schema/order issue.
+      console.warn('Bookings GET returned empty array for query:', query);
+      continue;
+    }
+
+    console.warn('Bookings GET returned non-array payload for query:', query, 'payload:', data);
+  }
+
+  return { data: [], query: 'none' };
+}
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -205,9 +244,11 @@ module.exports = async (req, res) => {
       return res.end('Unauthorized');
     }
     try {
-      const r = await supabaseRequest('bookings?select=*&order=created_at.desc,date.desc,time.desc');
-      const data = await r.json();
+      const result = await fetchBookingsRows();
+      const data = result.data;
       res.setHeader('Content-Type', 'application/json');
+      res.setHeader('X-Bookings-Count', String(Array.isArray(data) ? data.length : 0));
+      res.setHeader('X-Bookings-Query', result.query);
       return res.end(JSON.stringify(data));
     } catch (err) {
       res.statusCode = 500;
