@@ -685,6 +685,29 @@ p{ margin: 0; }
 }
 .booking-band .btn-primary:hover{ background:#000; }
 .booking-actions{ margin-top: 34px; display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.today-slots{
+  margin-top: 20px;
+  min-height: 30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  flex-wrap: wrap;
+  color: rgba(20,17,13,0.78);
+  font-size: 13px;
+}
+.today-slots strong{ color: rgba(20,17,13,0.9); }
+.today-slots .slot-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 4px 10px;
+  border: 1px solid rgba(20,17,13,0.3);
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: rgba(255,255,255,0.28);
+}
 
 /* ---------- FAQ -------------------------------------------------------------- */
 .faq{ background: var(--ink); }

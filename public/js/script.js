@@ -360,14 +360,103 @@ document.addEventListener("DOMContentLoaded", () => {
     function saveBookings(bs) { localStorage.setItem(BOOKING_KEY, JSON.stringify(bs)); }
     function isSlotTaken(dtIso) { return loadBookings().some(b => b.datetime === dtIso); }
 
-    function formatLocalIso(date) {
-      // return YYYY-MM-DDTHH:MM in local time (match inputs)
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      const hh = String(date.getHours()).padStart(2, '0');
-      const mm = String(date.getMinutes()).padStart(2, '0');
-      return `${y}-${m}-${d}T${hh}:${mm}`;
+    function normalizeTxt(v) {
+      return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    }
+
+    function parseMinutes(timeStr) {
+      const m = String(timeStr || '').match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return null;
+      const hh = Number(m[1]);
+      const mm = Number(m[2]);
+      if (Number.isNaN(hh) || Number.isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+      return hh * 60 + mm;
+    }
+
+    function formatMinutes(total) {
+      const hh = String(Math.floor(total / 60)).padStart(2, '0');
+      const mm = String(total % 60).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+
+    function getDateYmd(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function ceilToQuarter(mins) {
+      return Math.ceil(mins / 15) * 15;
+    }
+
+    function getHoursForDate(dateStr) {
+      const fallback = { open: 10 * 60, close: 20 * 60 };
+      if (!dateStr) return fallback;
+      const d = new Date(`${dateStr}T12:00:00`);
+      if (Number.isNaN(d.getTime())) return fallback;
+
+      const dayNames = [
+        'niedziela', 'poniedzialek', 'wtorek', 'sroda', 'czwartek', 'piatek', 'sobota'
+      ];
+      const dayName = dayNames[d.getDay()];
+      const hoursCfg = cfg.contact && Array.isArray(cfg.contact.hours) ? cfg.contact.hours : [];
+      const row = hoursCfg.find(h => normalizeTxt(h.day) === dayName);
+      if (!row || !row.hours) return fallback;
+
+      const raw = normalizeTxt(row.hours);
+      if (raw.includes('nieczynne') || raw.includes('zamkniete') || raw.includes('closed')) {
+        return null;
+      }
+
+      const rangeMatch = String(row.hours).match(/(\d{1,2}:\d{2})\s*[\-\u2013\u2014]\s*(\d{1,2}:\d{2})/);
+      if (!rangeMatch) return fallback;
+      const open = parseMinutes(rangeMatch[1]);
+      const close = parseMinutes(rangeMatch[2]);
+      if (open === null || close === null || close <= open) return fallback;
+      return { open, close };
+    }
+
+    async function renderTodaySlots() {
+      const wrap = document.querySelector('.js-today-slots');
+      if (!wrap) return;
+
+      const now = new Date();
+      const today = getDateYmd(now);
+      const hours = getHoursForDate(today);
+      if (!hours) {
+        wrap.innerHTML = '<strong>Dzisiaj:</strong> salon nieczynny';
+        return;
+      }
+
+      const openFrom = Math.max(hours.open, ceilToQuarter(now.getHours() * 60 + now.getMinutes()));
+      let booked = [];
+      try {
+        const apiUrl = (cfg.booking && cfg.booking.apiUrl) || '/api/bookings';
+        const res = await fetch(`${apiUrl}?availability=1&date=${encodeURIComponent(today)}`);
+        if (res.ok) {
+          const data = await res.json();
+          booked = Array.isArray(data.times) ? data.times : [];
+        }
+      } catch (e) {
+        booked = [];
+      }
+
+      const free = [];
+      for (let t = openFrom; t < hours.close; t += 15) {
+        const v = formatMinutes(t);
+        if (!booked.includes(v)) free.push(v);
+      }
+
+      if (free.length === 0) {
+        wrap.innerHTML = '<strong>Dzisiaj:</strong> brak wolnych terminów';
+        return;
+      }
+
+      const top = free.slice(0, 6)
+        .map(v => `<span class="slot-chip">${v}</span>`)
+        .join('');
+      wrap.innerHTML = `<strong>Dzisiaj wolne:</strong> ${top}`;
     }
 
     function createModal() {
@@ -384,6 +473,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <select name="countryCode" required></select>
             </label>
             <label>Telefon<input name="phone" inputmode="tel" placeholder="np. 730 953 579" required></label>
+            <input name="website" class="booking-hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
             <label>Data<input name="date" type="date" required></label>
             <label>Godzina
               <select name="time" required>
@@ -413,6 +503,8 @@ document.addEventListener("DOMContentLoaded", () => {
           .booking-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
           .booking-close{position:absolute;right:18px;top:10px;background:none;border:0;font-size:22px;cursor:pointer}
           .booking-msg{min-height:18px;margin-top:6px;color:#b00020}
+          .booking-hp{position:absolute;left:-9999px;opacity:0;pointer-events:none}
+          .booking-success-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
         `;
         document.head.appendChild(s);
       }
@@ -496,13 +588,28 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        let openFrom = hours.open;
+        if (dateStr === todayStr) {
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          const rounded = Math.ceil(nowMinutes / 15) * 15;
+          openFrom = Math.max(openFrom, rounded);
+        }
+
         timeSelect.disabled = false;
-        for (let t = hours.open; t < hours.close; t += 15) {
+        for (let t = openFrom; t < hours.close; t += 15) {
           const value = formatMinutes(t);
           const opt = document.createElement('option');
           opt.value = value;
           opt.textContent = value;
           timeSelect.appendChild(opt);
+        }
+
+        if (timeSelect.options.length === 1) {
+          placeholder.textContent = 'Brak wolnych godzin na dziś';
+          timeSelect.disabled = true;
+          return;
         }
 
         if (currentValue && Array.from(timeSelect.options).some(o => o.value === currentValue)) {
@@ -579,16 +686,79 @@ document.addEventListener("DOMContentLoaded", () => {
       cancel.addEventListener('click', () => modal.remove());
       modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
+      function toUtcStamp(dt) {
+        return dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      }
+
+      function buildIcs(date, time, customerName, barberName) {
+        const start = new Date(`${date}T${time}:00`);
+        const end = new Date(start.getTime() + 45 * 60 * 1000);
+        const summary = 'Wizyta w Golarz Filip';
+        const desc = `Klient: ${customerName}\\nBarber: ${barberName || 'Bez preferencji'}`;
+        const body = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//GolarzFilip//Booking//PL',
+          'BEGIN:VEVENT',
+          `UID:${Date.now()}@golarz-filip`,
+          `DTSTAMP:${toUtcStamp(new Date())}`,
+          `DTSTART:${toUtcStamp(start)}`,
+          `DTEND:${toUtcStamp(end)}`,
+          `SUMMARY:${summary}`,
+          `DESCRIPTION:${desc}`,
+          'END:VEVENT',
+          'END:VCALENDAR'
+        ].join('\r\n');
+        return body;
+      }
+
+      function showBookingSuccess(date, time, customerName, barberName) {
+        msg.style.color = 'green';
+        msg.textContent = 'Rezerwacja zapisana. Zamknij okno krzyżykiem lub dodaj termin do kalendarza.';
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Zapisano';
+        }
+
+        let box = form.querySelector('.booking-success-actions');
+        if (!box) {
+          box = document.createElement('div');
+          box.className = 'booking-success-actions';
+          form.appendChild(box);
+        }
+        box.innerHTML = '';
+
+        const addCalBtn = document.createElement('button');
+        addCalBtn.type = 'button';
+        addCalBtn.className = 'btn btn-outline';
+        addCalBtn.textContent = 'Dodaj do kalendarza';
+        addCalBtn.addEventListener('click', () => {
+          const ics = buildIcs(date, time, customerName, barberName);
+          const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `rezerwacja-${date}-${time.replace(':', '-')}.ics`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+        box.appendChild(addCalBtn);
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault(); msg.textContent = '';
         const formData = new FormData(form);
         const name = formData.get('name').trim();
         const phone = formData.get('phone').trim();
         const countryCode = formData.get('countryCode');
+        const website = String(formData.get('website') || '').trim();
         const country = PHONE_COUNTRIES.find(c => c.code === countryCode);
         const date = formData.get('date');
         const time = formData.get('time');
         const barber = formData.get('barber');
+        if (website) { msg.textContent = 'Błąd formularza.'; return; }
         if (!date || !time) { msg.textContent = 'Wybierz datę i godzinę.'; return; }
         if (!country) { msg.textContent = 'Wybierz kraj z listy.'; return; }
 
@@ -607,11 +777,11 @@ document.addEventListener("DOMContentLoaded", () => {
           try {
             const res = await fetch(apiUrl, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ date, time, name, phone: phoneCheck.e164, barber, country: country.code })
+              body: JSON.stringify({ date, time, name, phone: phoneCheck.e164, barber, country: country.code, website })
             });
             if (res.status === 201) {
-              msg.style.color = 'green'; msg.textContent = 'Rezerwacja zapisana. Dziękujemy!';
-              setTimeout(() => modal.remove(), 900);
+              showBookingSuccess(date, time, name, barber);
+              renderTodaySlots();
               return;
             } else if (res.status === 409) {
               msg.textContent = 'Ten termin jest już zajęty. Wybierz inny.'; return;
@@ -631,8 +801,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const bookings = loadBookings();
         bookings.push({ datetime: isoKey, name, phone: phoneCheck.e164, barber, createdAt: new Date().toISOString() });
         saveBookings(bookings);
-        msg.style.color = 'green'; msg.textContent = 'Rezerwacja zapisana lokalnie. Dziękujemy!';
-        setTimeout(() => modal.remove(), 1200);
+        showBookingSuccess(date, time, name, barber);
+        renderTodaySlots();
       });
     }
 
@@ -642,6 +812,8 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault(); openModal();
       });
     });
+
+    renderTodaySlots();
   })();
 
   /* ---------------- reveal on scroll -------------------------------------------------- */

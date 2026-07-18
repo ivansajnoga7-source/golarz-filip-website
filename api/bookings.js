@@ -6,6 +6,9 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; // service_role (ser
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'GolarzAdmin2026';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const SESSION_MAX_AGE = 24 * 60 * 60;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = 6;
+const bookingRateLimit = new Map();
 
 function parseCookies(cookieHeader) {
   const out = {};
@@ -73,6 +76,26 @@ function isValidE164(phone) {
   return /^\+[1-9]\d{7,14}$/.test(phone);
 }
 
+function getClientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim();
+  return req.headers['x-real-ip'] || req.socket?.remoteAddress || 'unknown';
+}
+
+function checkBookingRateLimit(req) {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const current = bookingRateLimit.get(ip) || [];
+  const recent = current.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+  if (recent.length >= RATE_LIMIT_MAX) {
+    bookingRateLimit.set(ip, recent);
+    return false;
+  }
+  recent.push(now);
+  bookingRateLimit.set(ip, recent);
+  return true;
+}
+
 module.exports = async (req, res) => {
   setCorsHeaders(res);
 
@@ -87,6 +110,35 @@ module.exports = async (req, res) => {
   const session = cookies.admin_session;
 
   if (req.method === 'GET') {
+    const url = new URL(req.url, 'http://localhost');
+    const isAvailability = url.searchParams.get('availability') === '1';
+
+    if (isAvailability) {
+      const date = url.searchParams.get('date');
+      if (!date) {
+        res.statusCode = 400;
+        return res.end('Missing date');
+      }
+      try {
+        const r = await supabaseRequest(
+          `bookings?select=time&date=eq.${encodeURIComponent(date)}&order=time.asc`
+        );
+        if (!r.ok) {
+          res.statusCode = r.status;
+          return res.end(await r.text());
+        }
+        const rows = await r.json();
+        const times = Array.isArray(rows)
+          ? rows.map(row => String(row.time || '').slice(0, 5)).filter(Boolean)
+          : [];
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ date, times }));
+      } catch (err) {
+        res.statusCode = 500;
+        return res.end('Error fetching availability');
+      }
+    }
+
     // require admin
     if (!session || !verifySessionToken(session)) {
       res.statusCode = 401;
@@ -114,9 +166,19 @@ module.exports = async (req, res) => {
       res.statusCode = 400;
       return res.end('Invalid JSON');
     }
+
+    if (!checkBookingRateLimit(req)) {
+      res.statusCode = 429;
+      return res.end('Too many booking attempts. Try again in a few minutes.');
+    }
     
     // Frontend sends: { date (YYYY-MM-DD), time (HH:MM), name, phone, barber }
-    const { date, time, name, phone, barber, note } = payload;
+    const { date, time, name, phone, barber, note, website } = payload;
+
+    if (website) {
+      res.statusCode = 400;
+      return res.end('Spam detected');
+    }
     
     if (!name || !date || !time) {
       res.statusCode = 400;
