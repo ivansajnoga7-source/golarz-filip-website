@@ -360,7 +360,8 @@ async function refreshBookings() {
   }
 
   if (srv.status === 401) {
-    wrap.innerHTML = '<em>Brak autoryzacji. Otwórz panel przez /admin i zaloguj się ponownie.</em>';
+    wrap.innerHTML = '<em>Sesja wygasła. Przekierowanie do logowania...</em>';
+    setTimeout(() => { window.location.href = '/admin'; }, 700);
     return;
   }
 
@@ -370,7 +371,7 @@ async function refreshBookings() {
     return;
   }
 
-  wrap.innerHTML = `<em>Błąd synchronizacji z serwerem (${srv.status}).</em>`;
+  wrap.innerHTML = `<em>Błąd synchronizacji z serwerem (${srv.status}): ${escapeAttr(srv.body || 'unknown_error')}</em>`;
 }
 
 async function deleteBooking(id) {

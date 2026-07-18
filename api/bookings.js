@@ -7,7 +7,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'GolarzAdmin2026';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const SESSION_MAX_AGE = 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const RATE_LIMIT_MAX = 6;
+const RATE_LIMIT_MAX = 30;
 const bookingRateLimit = new Map();
 
 function parseCookies(cookieHeader) {
