@@ -324,25 +324,48 @@ function loadLocalBookings() {
 
 function saveLocalBookings(bs) { localStorage.setItem('GF_BOOKINGS', JSON.stringify(bs)); }
 
+function normalizeBookingForAdmin(b) {
+  const date = String(b.date || '').trim();
+  const time = String(b.time || '').slice(0, 5);
+  const createdAt = String(b.created_at || b.createdAt || b.datetime || '').trim();
+  const slotStamp = date && time ? new Date(`${date}T${time}:00`) : null;
+  const createdStamp = createdAt ? new Date(createdAt) : null;
+  const sortStamp = (createdStamp && !Number.isNaN(createdStamp.getTime()) ? createdStamp : null)
+    || (slotStamp && !Number.isNaN(slotStamp.getTime()) ? slotStamp : null)
+    || new Date(0);
+
+  return Object.assign({}, b, {
+    date,
+    time,
+    barber: b.barber || b.note || 'Bez preferencji',
+    created_at: createdAt,
+    _sortStamp: sortStamp.getTime(),
+    _slotLabel: date && time ? `${date} ${time}` : (b.datetime || '')
+  });
+}
+
 function renderBookingsList(bookings) {
   const wrap = document.getElementById('bookingsContainer');
   wrap.innerHTML = '';
   if (!bookings || bookings.length === 0) { wrap.innerHTML = '<em>Brak rezerwacji.</em>'; return; }
+  const normalized = bookings.map(normalizeBookingForAdmin).sort((a, b) => {
+    if (b._sortStamp !== a._sortStamp) return b._sortStamp - a._sortStamp;
+    return String(b.date + b.time).localeCompare(String(a.date + a.time));
+  });
   const table = document.createElement('table');
   table.style.width = '100%';
-  table.innerHTML = '<thead><tr><th>Data</th><th>Godzina</th><th>Imię</th><th>Telefon</th><th>Barber</th><th></th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>Data</th><th>Godzina</th><th>Imię</th><th>Telefon</th><th>Barber</th><th>Dodano</th><th></th></tr></thead>';
   const tbody = document.createElement('tbody');
-  bookings.forEach(b => {
+  normalized.forEach(b => {
     const tr = document.createElement('tr');
-    // Support both old format (datetime) and new format (date + time)
-    const datetime = b.datetime ? new Date(b.datetime).toLocaleString() : (b.date + ' ' + (b.time || ''));
-    const barber = b.barber || b.note || 'Bez preferencji';
+    const created = b.created_at ? new Date(b.created_at).toLocaleString() : '';
     const id = b.id || b.datetime;
     tr.innerHTML = `<td>${escapeAttr(b.date || '')}</td>
                     <td>${escapeAttr(b.time || '')}</td>
                     <td>${escapeAttr(b.name)}</td>
                     <td>${escapeAttr(b.phone)}</td>
-                    <td>${escapeAttr(barber)}</td>
+                    <td>${escapeAttr(b.barber)}</td>
+                    <td>${escapeAttr(created)}</td>
                     <td><button class="admin-btn small" data-delid="${id}">Usuń</button></td>`;
     tbody.appendChild(tr);
   });
