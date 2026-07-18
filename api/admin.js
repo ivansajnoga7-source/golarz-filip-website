@@ -65,9 +65,9 @@ function loginFormHtml(message) {
   <body>
     <h2>Admin login</h2>
     ${message ? `<p style="color:red">${message}</p>` : ''}
-    <form method="post">
-      <label>Username: <input name="username" /></label><br/>
-      <label>Password: <input name="password" type="password"/></label><br/>
+    <form method="post" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <label>Username: <input name="admin_user" autocomplete="off" autocapitalize="off" spellcheck="false" /></label><br/>
+      <label>Password: <input name="admin_pass" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" /></label><br/>
       <button type="submit">Login</button>
     </form>
   </body>
@@ -92,8 +92,8 @@ module.exports = async (req, res) => {
     let body = '';
     for await (const chunk of req) body += chunk;
     const params = new URLSearchParams(body);
-    const user = params.get('username') || '';
-    const password = params.get('password') || '';
+    const user = params.get('admin_user') || '';
+    const password = params.get('admin_pass') || '';
 
     if (user !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
