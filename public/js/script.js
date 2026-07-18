@@ -378,7 +378,11 @@ document.addEventListener("DOMContentLoaded", () => {
             </label>
             <label>Telefon<input name="phone" inputmode="tel" placeholder="np. 730 953 579" required></label>
             <label>Data<input name="date" type="date" required></label>
-            <label>Godzina<input name="time" type="time" step="900" required></label>
+            <label>Godzina
+              <select name="time" required>
+                <option value="">Wybierz godzinę</option>
+              </select>
+            </label>
             <label>Barber<select name="barber"></select></label>
             <div class="booking-msg" aria-live="polite"></div>
             <div class="booking-actions">
@@ -421,6 +425,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const countrySelect = modal.querySelector('select[name="countryCode"]');
       const countrySearch = modal.querySelector('input[name="countrySearch"]');
       const phoneInput = modal.querySelector('input[name="phone"]');
+      const timeSelect = modal.querySelector('select[name="time"]');
+
+      function populateTimeOptions() {
+        for (let hour = 0; hour < 24; hour += 1) {
+          for (let minute = 0; minute < 60; minute += 15) {
+            const hh = String(hour).padStart(2, '0');
+            const mm = String(minute).padStart(2, '0');
+            const value = `${hh}:${mm}`;
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = value;
+            timeSelect.appendChild(opt);
+          }
+        }
+      }
 
       function applyPhoneConstraints(countryCode) {
         const selected = PHONE_COUNTRIES.find(c => c.code === countryCode);
@@ -467,6 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       renderCountryOptions('');
+      populateTimeOptions();
       countrySearch.addEventListener('input', () => renderCountryOptions(countrySearch.value));
       countrySelect.addEventListener('change', () => applyPhoneConstraints(countrySelect.value));
       phoneInput.addEventListener('input', () => {
