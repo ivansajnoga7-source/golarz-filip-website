@@ -427,17 +427,79 @@ document.addEventListener("DOMContentLoaded", () => {
       const phoneInput = modal.querySelector('input[name="phone"]');
       const timeSelect = modal.querySelector('select[name="time"]');
 
-      function populateTimeOptions() {
-        for (let hour = 0; hour < 24; hour += 1) {
-          for (let minute = 0; minute < 60; minute += 15) {
-            const hh = String(hour).padStart(2, '0');
-            const mm = String(minute).padStart(2, '0');
-            const value = `${hh}:${mm}`;
-            const opt = document.createElement('option');
-            opt.value = value;
-            opt.textContent = value;
-            timeSelect.appendChild(opt);
-          }
+      function normalizeTxt(v) {
+        return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      function parseMinutes(timeStr) {
+        const m = String(timeStr || '').match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return null;
+        const hh = Number(m[1]);
+        const mm = Number(m[2]);
+        if (Number.isNaN(hh) || Number.isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+        return hh * 60 + mm;
+      }
+
+      function formatMinutes(total) {
+        const hh = String(Math.floor(total / 60)).padStart(2, '0');
+        const mm = String(total % 60).padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+
+      function getHoursForDate(dateStr) {
+        const fallback = { open: 10 * 60, close: 20 * 60 };
+        if (!dateStr) return fallback;
+        const d = new Date(`${dateStr}T12:00:00`);
+        if (Number.isNaN(d.getTime())) return fallback;
+
+        const dayNames = [
+          'niedziela', 'poniedzialek', 'wtorek', 'sroda', 'czwartek', 'piatek', 'sobota'
+        ];
+        const dayName = dayNames[d.getDay()];
+        const hoursCfg = cfg.contact && Array.isArray(cfg.contact.hours) ? cfg.contact.hours : [];
+        const row = hoursCfg.find(h => normalizeTxt(h.day) === dayName);
+        if (!row || !row.hours) return fallback;
+
+        const raw = normalizeTxt(row.hours);
+        if (raw.includes('nieczynne') || raw.includes('zamkniete') || raw.includes('closed')) {
+          return null;
+        }
+
+        const rangeMatch = String(row.hours).match(/(\d{1,2}:\d{2})\s*[\-\u2013\u2014]\s*(\d{1,2}:\d{2})/);
+        if (!rangeMatch) return fallback;
+        const open = parseMinutes(rangeMatch[1]);
+        const close = parseMinutes(rangeMatch[2]);
+        if (open === null || close === null || close <= open) return fallback;
+        return { open, close };
+      }
+
+      function populateTimeOptionsForDate(dateStr) {
+        const currentValue = timeSelect.value;
+        timeSelect.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Wybierz godzinę';
+        timeSelect.appendChild(placeholder);
+
+        const hours = getHoursForDate(dateStr);
+        if (!hours) {
+          placeholder.textContent = 'Salon nieczynny';
+          timeSelect.disabled = true;
+          return;
+        }
+
+        timeSelect.disabled = false;
+        for (let t = hours.open; t < hours.close; t += 15) {
+          const value = formatMinutes(t);
+          const opt = document.createElement('option');
+          opt.value = value;
+          opt.textContent = value;
+          timeSelect.appendChild(opt);
+        }
+
+        if (currentValue && Array.from(timeSelect.options).some(o => o.value === currentValue)) {
+          timeSelect.value = currentValue;
         }
       }
 
@@ -486,7 +548,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       renderCountryOptions('');
-      populateTimeOptions();
+      populateTimeOptionsForDate('');
       countrySearch.addEventListener('input', () => renderCountryOptions(countrySearch.value));
       countrySelect.addEventListener('change', () => applyPhoneConstraints(countrySelect.value));
       phoneInput.addEventListener('input', () => {
@@ -500,6 +562,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dateInput = form.querySelector('input[name="date"]');
       const today = new Date();
       dateInput.min = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      dateInput.addEventListener('change', () => populateTimeOptionsForDate(dateInput.value));
 
       close.addEventListener('click', () => modal.remove());
       cancel.addEventListener('click', () => modal.remove());
