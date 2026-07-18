@@ -65,6 +65,14 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
+function normalizePhone(phone) {
+  return String(phone || '').replace(/\s+/g, '').replace(/[()\-]/g, '');
+}
+
+function isValidE164(phone) {
+  return /^\+[1-9]\d{7,14}$/.test(phone);
+}
+
 module.exports = async (req, res) => {
   setCorsHeaders(res);
 
@@ -114,11 +122,17 @@ module.exports = async (req, res) => {
       res.statusCode = 400;
       return res.end('Missing required fields: name, date, and time');
     }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!isValidE164(normalizedPhone)) {
+      res.statusCode = 400;
+      return res.end('Invalid phone number. Use international format, e.g. +48730953579');
+    }
     
     try {
       const r = await supabaseRequest('bookings', {
         method: 'POST',
-        body: JSON.stringify({ name, phone, date, time, note: barber || note }),
+        body: JSON.stringify({ name, phone: normalizedPhone, date, time, note: barber || note }),
         query: ''
       });
       console.log('Supabase response status:', r.status);

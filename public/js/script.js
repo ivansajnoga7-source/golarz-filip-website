@@ -249,6 +249,52 @@ document.addEventListener("DOMContentLoaded", () => {
   (function setupBooking() {
     const BOOKING_KEY = 'GF_BOOKINGS';
     const bookingAnchors = Array.from(document.querySelectorAll('.js-booking-url'));
+    const PHONE_COUNTRIES = [
+      { code: 'PL', name: 'Polska', dial: '+48', min: 9, max: 9 },
+      { code: 'UA', name: 'Ukraina', dial: '+380', min: 9, max: 9 },
+      { code: 'DE', name: 'Niemcy', dial: '+49', min: 10, max: 11 },
+      { code: 'CZ', name: 'Czechy', dial: '+420', min: 9, max: 9 },
+      { code: 'SK', name: 'Słowacja', dial: '+421', min: 9, max: 9 },
+      { code: 'LT', name: 'Litwa', dial: '+370', min: 8, max: 8 },
+      { code: 'LV', name: 'Łotwa', dial: '+371', min: 8, max: 8 },
+      { code: 'EE', name: 'Estonia', dial: '+372', min: 7, max: 8 },
+      { code: 'GB', name: 'Wielka Brytania', dial: '+44', min: 10, max: 10 },
+      { code: 'IE', name: 'Irlandia', dial: '+353', min: 9, max: 9 },
+      { code: 'FR', name: 'Francja', dial: '+33', min: 9, max: 9 },
+      { code: 'ES', name: 'Hiszpania', dial: '+34', min: 9, max: 9 },
+      { code: 'IT', name: 'Włochy', dial: '+39', min: 9, max: 10 },
+      { code: 'NL', name: 'Holandia', dial: '+31', min: 9, max: 9 },
+      { code: 'BE', name: 'Belgia', dial: '+32', min: 8, max: 9 },
+      { code: 'AT', name: 'Austria', dial: '+43', min: 10, max: 13 },
+      { code: 'NO', name: 'Norwegia', dial: '+47', min: 8, max: 8 },
+      { code: 'SE', name: 'Szwecja', dial: '+46', min: 7, max: 10 },
+      { code: 'DK', name: 'Dania', dial: '+45', min: 8, max: 8 },
+      { code: 'FI', name: 'Finlandia', dial: '+358', min: 9, max: 10 },
+      { code: 'US', name: 'USA', dial: '+1', min: 10, max: 10 },
+      { code: 'CA', name: 'Kanada', dial: '+1', min: 10, max: 10 }
+    ];
+
+    function normalizeDigits(v) {
+      return String(v || '').replace(/\D/g, '');
+    }
+
+    function toE164(dial, national) {
+      return `${dial}${normalizeDigits(national)}`;
+    }
+
+    function validatePhone(country, national) {
+      const digits = normalizeDigits(national);
+      if (!digits) return { ok: false, message: 'Wpisz numer telefonu.' };
+      if (/^(\d)\1+$/.test(digits)) return { ok: false, message: 'Numer telefonu wygląda nieprawidłowo.' };
+      if (digits.length < country.min || digits.length > country.max) {
+        return { ok: false, message: `Numer dla ${country.name} musi mieć ${country.min}-${country.max} cyfr.` };
+      }
+      const e164 = toE164(country.dial, digits);
+      if (!/^\+[1-9]\d{7,14}$/.test(e164)) {
+        return { ok: false, message: 'Nieprawidłowy format numeru telefonu.' };
+      }
+      return { ok: true, e164 };
+    }
 
     function loadBookings() {
       try { return JSON.parse(localStorage.getItem(BOOKING_KEY) || '[]'); }
@@ -276,7 +322,11 @@ document.addEventListener("DOMContentLoaded", () => {
           <h3>Zarezerwuj termin</h3>
           <form class="booking-form">
             <label>Imię i nazwisko<input name="name" required></label>
-            <label>Telefon<input name="phone" inputmode="tel" required></label>
+            <label>Kraj / kod
+              <input name="countrySearch" type="search" placeholder="Szukaj kraju lub kodu, np. Polska, +48" autocomplete="off">
+              <select name="countryCode" required></select>
+            </label>
+            <label>Telefon<input name="phone" inputmode="tel" placeholder="np. 730 953 579" required></label>
             <label>Data<input name="date" type="date" required></label>
             <label>Godzina<input name="time" type="time" step="900" required></label>
             <label>Barber<select name="barber"></select></label>
@@ -318,11 +368,41 @@ document.addEventListener("DOMContentLoaded", () => {
       const cancel = modal.querySelector('.booking-cancel');
       const msg = modal.querySelector('.booking-msg');
       const barberSelect = modal.querySelector('select[name="barber"]');
+      const countrySelect = modal.querySelector('select[name="countryCode"]');
+      const countrySearch = modal.querySelector('input[name="countrySearch"]');
+
+      function renderCountryOptions(filter) {
+        const q = String(filter || '').trim().toLowerCase();
+        const items = PHONE_COUNTRIES.filter(c => {
+          if (!q) return true;
+          return c.name.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q);
+        });
+        countrySelect.innerHTML = '';
+        items.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.code;
+          opt.textContent = `${c.name} (${c.dial})`;
+          countrySelect.appendChild(opt);
+        });
+        if (items.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'Brak wyników';
+          countrySelect.appendChild(opt);
+          countrySelect.value = '';
+          return;
+        }
+        const exists = items.some(c => c.code === 'PL');
+        countrySelect.value = exists ? 'PL' : items[0].code;
+      }
 
       // populate barber list
       (cfg.barbers || []).forEach((b, i) => {
         const opt = document.createElement('option'); opt.value = b.name; opt.textContent = b.name; barberSelect.appendChild(opt);
       });
+
+      renderCountryOptions('');
+      countrySearch.addEventListener('input', () => renderCountryOptions(countrySearch.value));
 
       // set min date to today
       const dateInput = form.querySelector('input[name="date"]');
@@ -338,10 +418,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const formData = new FormData(form);
         const name = formData.get('name').trim();
         const phone = formData.get('phone').trim();
+        const countryCode = formData.get('countryCode');
+        const country = PHONE_COUNTRIES.find(c => c.code === countryCode);
         const date = formData.get('date');
         const time = formData.get('time');
         const barber = formData.get('barber');
         if (!date || !time) { msg.textContent = 'Wybierz datę i godzinę.'; return; }
+        if (!country) { msg.textContent = 'Wybierz kraj z listy.'; return; }
+
+        const phoneCheck = validatePhone(country, phone);
+        if (!phoneCheck.ok) { msg.textContent = phoneCheck.message; return; }
 
         // construct local datetime to check if in future
         const [y,m,d] = date.split('-').map(Number);
@@ -355,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
           try {
             const res = await fetch(apiUrl, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ date, time, name, phone, barber })
+              body: JSON.stringify({ date, time, name, phone: phoneCheck.e164, barber, country: country.code })
             });
             if (res.status === 201) {
               msg.style.color = 'green'; msg.textContent = 'Rezerwacja zapisana. Dziękujemy!';
@@ -374,9 +460,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // fallback: localStorage
+        const isoKey = `${date}T${time}`;
         if (isSlotTaken(isoKey)) { msg.textContent = 'Ten termin jest już zajęty. Wybierz inny.'; return; }
         const bookings = loadBookings();
-        bookings.push({ datetime: isoKey, name, phone, barber, createdAt: new Date().toISOString() });
+        bookings.push({ datetime: isoKey, name, phone: phoneCheck.e164, barber, createdAt: new Date().toISOString() });
         saveBookings(bookings);
         msg.style.color = 'green'; msg.textContent = 'Rezerwacja zapisana lokalnie. Dziękujemy!';
         setTimeout(() => modal.remove(), 1200);
