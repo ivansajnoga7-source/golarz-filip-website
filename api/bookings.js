@@ -77,7 +77,7 @@ function isValidE164(phone) {
 }
 
 async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue) {
-  // Try the current schema first (note), then fallback to older/newer variant (barber).
+  // Try possible schema variants in order: note -> barber -> no barber field.
   let r = await supabaseRequest('bookings', {
     method: 'POST',
     body: JSON.stringify(Object.assign({}, payloadBase, { note: preferredBarberValue })),
@@ -89,7 +89,7 @@ async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue
   const firstText = await r.text();
   const firstLower = String(firstText || '').toLowerCase();
 
-  if (firstLower.includes("could not find the 'note' column")) {
+  if (firstLower.includes("could not find the 'note' column") || firstLower.includes('column')) {
     r = await supabaseRequest('bookings', {
       method: 'POST',
       body: JSON.stringify(Object.assign({}, payloadBase, { barber: preferredBarberValue })),
@@ -98,6 +98,24 @@ async function insertBookingWithSchemaFallback(payloadBase, preferredBarberValue
     if (r.ok) return r;
 
     const secondText = await r.text();
+    const secondLower = String(secondText || '').toLowerCase();
+
+    if (secondLower.includes("could not find the 'barber' column") || secondLower.includes('column')) {
+      r = await supabaseRequest('bookings', {
+        method: 'POST',
+        body: JSON.stringify(payloadBase),
+        query: ''
+      });
+      if (r.ok) return r;
+
+      const thirdText = await r.text();
+      return {
+        ok: false,
+        status: r.status,
+        text: async () => thirdText
+      };
+    }
+
     return {
       ok: false,
       status: r.status,
